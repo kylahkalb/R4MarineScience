@@ -6,7 +6,7 @@
 .DS_Store
 
 # Extensions to ignore - toggle on and off as required
-*.html
+#*.html
 # *.png
 # *.jpg
 # *.jpeg
@@ -25,4 +25,4 @@ output/
 *archive
 *scratch
 *tutor*
-*_files
+#*_files
