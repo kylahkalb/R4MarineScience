@@ -16,6 +16,19 @@ source("../code/R4MarineScience_01.R")
 ```
 
 ```{r}
+# Summarise mean body mass by species and island to provide a table that matches the accompanying plot
+
+penguin_mass_summary <- penguins |>
+  group_by(species, island) |>
+  summarise(
+    mean_mass_g = mean(body_mass_g, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+penguin_mass_summary
+```
+
+```{r}
 #Pipe directly from aggregation to plotting with error bars
 mass_compare_plot <- penguins |>
   group_by(species, island) |>
