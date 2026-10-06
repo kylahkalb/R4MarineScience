@@ -1,0 +1,308 @@
+---
+title: "R4MarineScience_02"
+subtitle: "Keystone exercise: Estuary Fish Survey - Data Rescue Mission"
+author: "Kylah Kalbfleisch"
+format: html
+editor: visual
+---
+
+```{r}
+# Load packages
+library(tidyverse)
+library(readxl)
+library(lubridate)
+library(here)
+```
+
+```{r}
+## 1. Import data 
+```
+
+```{r}
+# Import CSV datasets
+estuary_metadata <- read_csv(
+  here("data", "workshop2", "estuary_metadata.csv"))
+
+estuary_sonde_data <- read_csv(
+  here("data", "workshop2", "estuary_sonde_data.csv"))
+
+species_dictionary <- read_csv(
+  here("data", "workshop2", "species_dictionary.csv"))
+```
+
+```{r}
+# Check imported datasets
+glimpse(estuary_metadata)
+glimpse(estuary_sonde_data)
+glimpse(species_dictionary)
+```
+
+```{r}
+## 2. Import and combine catch log sheets
+```
+
+```{r}
+# Check the sheet names in the catch log
+catch_sheets <- excel_sheets(
+  here("data", "workshop2", "estuary_catch_log.xlsx"))
+
+catch_sheets
+```
+
+```{r}
+# Read all catch-log sheets and combine them
+catch_log <- catch_sheets |>
+  set_names() |>
+  map_dfr(
+    ~ read_excel(
+      here("data", "workshop2", "estuary_catch_log.xlsx"),
+      sheet = .x),
+    .id = "sheet_name")
+# Check
+glimpse(catch_log)
+head(catch_log)
+```
+
+```{r}
+# Check catch-log column names
+names(catch_log)
+```
+
+```{r}
+# Preview the combined catch log
+head(catch_log)
+```
+
+```{r}
+## 3. Clean catch log
+```
+
+```{r}
+# Standardise site and species names
+catch_clean <- catch_log |>
+  mutate(
+    site = str_to_lower(site),
+    site = str_trim(site),
+    site = str_replace_all(site, " ", "_"),
+    
+    species = str_to_lower(species),
+    species = str_trim(species),
+    species = str_replace_all(species, " ", "_"))
+```
+
+```{r}
+# Check cleaned values
+unique(catch_clean$site)
+unique(catch_clean$species)
+```
+
+```{r}
+# Inspect metadata and species dictionary
+names(estuary_metadata)
+head(estuary_metadata)
+
+names(species_dictionary)
+head(species_dictionary)
+```
+
+```{r}
+# Clean metadata site names
+metadata_clean <- estuary_metadata |>
+  mutate(
+    site_name = str_to_lower(site_name),
+    site_name = str_trim(site_name),
+    site_name = str_replace_all(site_name, " ", "_"))
+#Check 
+unique(metadata_clean$site_name)
+```
+
+```{r}
+## 4. Clean sonde data
+```
+
+```{r}
+# Inspect sonde data
+names(estuary_sonde_data)
+head(estuary_sonde_data)
+```
+
+```{r}
+# Clean sonde timestamps and sensor error values
+sonde_clean <- estuary_sonde_data |>
+  mutate(
+    timestamp = dmy_hm(timestamp),
+    turbidity = na_if(turbidity, -999))
+glimpse(sonde_clean)
+```
+
+```{r}
+# Create daily water quality summaries
+daily_sonde <- sonde_clean |>
+  mutate(
+    date = floor_date(timestamp, unit = "day")) |>
+  group_by(site, date) |>
+  summarise(
+    mean_temperature = mean(temperature, na.rm = TRUE),
+    mean_salinity = mean(salinity, na.rm = TRUE),
+    .groups = "drop")
+# Check
+head(daily_sonde)
+```
+
+```{r}
+## 5. Add scientific names
+```
+
+```{r}
+# Join scientific names to the catch data
+catch_taxonomy <- catch_clean |>
+  left_join(
+    species_dictionary,
+    by = join_by(species == common_name))
+# Check
+head(catch_taxonomy)
+```
+
+```{r}
+# Check for any species that failed to match
+catch_clean |>
+  anti_join(
+    species_dictionary,
+    by = join_by(species == common_name))
+```
+
+```{r}
+## 6. Create master dataset
+```
+
+```{r}
+# Join catch data with spatial metadata
+master_data <- catch_taxonomy |>
+  left_join(
+    metadata_clean,
+    by = join_by(site == site_name))
+```
+
+```{r}
+# Join daily water-quality summaries
+master_data <- master_data |>
+  left_join(
+    daily_sonde,
+    by = join_by(site, date))
+```
+
+```{r}
+# Inspect 
+glimpse(master_data)
+# Check
+head(master_data)
+```
+
+```{r}
+## 7. Build zero-catch framework
+```
+
+```{r}
+# Create all site-date-species combinations
+catch_complete <- catch_taxonomy |>
+  complete(
+    site,
+    date,
+    scientific_name) |>
+  mutate(
+    count = coalesce(count, 0))
+# Check
+head(catch_complete)
+glimpse(catch_complete)
+```
+
+```{r}
+# Rebuild master dataset with zero-catch rows included
+master_data <- catch_complete |>
+  left_join(
+    metadata_clean,
+    by = join_by(site == site_name)) |>
+  left_join(
+    daily_sonde,
+    by = join_by(site, date))
+```
+
+```{r}
+# Inspect
+glimpse(master_data)
+# Check for zero catches
+master_data |>
+  filter(count == 0) |>
+  head()
+```
+
+```{r}
+## 8. Statistical summary
+```
+
+```{r}
+# Calculate summary statistics by species and zone
+summary_table <- master_data |>
+  group_by(scientific_name, zone) |>
+  summarise(
+    mean_catch = mean(count, na.rm = TRUE),
+    se_catch = sd(count, na.rm = TRUE) /
+      sqrt(sum(!is.na(count))),
+    
+    avg_salinity = mean(mean_salinity, na.rm = TRUE),
+    se_salinity = sd(mean_salinity, na.rm = TRUE) /
+      sqrt(sum(!is.na(mean_salinity))),
+    
+    .groups = "drop") |>
+  rename(
+    mean_salinity = avg_salinity)
+summary_table
+```
+
+```{r}
+## 9. Visualise fish abundance along the salinity gradient
+```
+
+```{r}
+# Create italicised scientific-name labels
+plot_data <- master_data |>
+  mutate(
+    facet_label = paste0("italic('", scientific_name, "')"))
+# Plot fish abundance along the salinity gradient
+ggplot(
+  plot_data,
+  aes(x = mean_salinity, y = count)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(
+    method = "lm",
+    se = TRUE) +
+  facet_wrap(
+    ~ facet_label,
+    labeller = label_parsed) +
+ labs(
+  title = "Fish abundance along the Ross River Estuary salinity gradient",
+  subtitle = "Salinity increases from upstream freshwater sites toward the estuary mouth",
+  x = "Mean daily salinity",
+  y = "Fish abundance") +
+  theme_minimal()
+```
+
+```{r}
+## 10. Final data checks
+```
+
+```{r}
+# Check final master dataset
+glimpse(master_data)
+
+# Confirm there are no legacy -999 sensor errors
+any(master_data == -999, na.rm = TRUE)
+
+# Confirm zero-catch observations were included
+master_data |>
+  filter(count == 0) |>
+  head()
+
+# View final statistical summary
+summary_table
+```

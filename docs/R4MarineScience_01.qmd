@@ -1,7 +1,7 @@
 ---
 title: "R4MarineScience_01"
 subtitle: "Foundations of Data Science: Wrangling and Plotting"
-author: Kylah Kalbfleisch
+author: "Kylah Kalbfleisch"
 format: html
 editor: visual
 ---
