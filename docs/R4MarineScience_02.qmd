@@ -14,9 +14,7 @@ library(lubridate)
 library(here)
 ```
 
-```{r}
-## 1. Import data 
-```
+## 1. Import data
 
 ```{r}
 # Import CSV datasets
@@ -37,9 +35,7 @@ glimpse(estuary_sonde_data)
 glimpse(species_dictionary)
 ```
 
-```{r}
 ## 2. Import and combine catch log sheets
-```
 
 ```{r}
 # Check the sheet names in the catch log
@@ -73,9 +69,7 @@ names(catch_log)
 head(catch_log)
 ```
 
-```{r}
 ## 3. Clean catch log
-```
 
 ```{r}
 # Standardise site and species names
@@ -116,9 +110,7 @@ metadata_clean <- estuary_metadata |>
 unique(metadata_clean$site_name)
 ```
 
-```{r}
 ## 4. Clean sonde data
-```
 
 ```{r}
 # Inspect sonde data
@@ -149,9 +141,7 @@ daily_sonde <- sonde_clean |>
 head(daily_sonde)
 ```
 
-```{r}
 ## 5. Add scientific names
-```
 
 ```{r}
 # Join scientific names to the catch data
@@ -171,9 +161,7 @@ catch_clean |>
     by = join_by(species == common_name))
 ```
 
-```{r}
 ## 6. Create master dataset
-```
 
 ```{r}
 # Join catch data with spatial metadata
@@ -198,9 +186,7 @@ glimpse(master_data)
 head(master_data)
 ```
 
-```{r}
 ## 7. Build zero-catch framework
-```
 
 ```{r}
 # Create all site-date-species combinations
@@ -236,9 +222,7 @@ master_data |>
   head()
 ```
 
-```{r}
 ## 8. Statistical summary
-```
 
 ```{r}
 # Calculate summary statistics by species and zone
@@ -259,9 +243,7 @@ summary_table <- master_data |>
 summary_table
 ```
 
-```{r}
 ## 9. Visualise fish abundance along the salinity gradient
-```
 
 ```{r}
 # Create italicised scientific-name labels
@@ -287,9 +269,7 @@ ggplot(
   theme_minimal()
 ```
 
-```{r}
 ## 10. Final data checks
-```
 
 ```{r}
 # Check final master dataset
