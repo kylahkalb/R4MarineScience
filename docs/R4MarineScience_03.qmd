@@ -81,6 +81,11 @@ dolphin_clean |>
   head(10)
 ```
 
+## Reconstructed figure
+
+**Improvement approach:**\
+The figure was redesigned to make the temporal patterns easier to interpret by simplifying the x-axis, using contrasting colours for sex, and using different point shapes to retain seasonal information.
+
 ```{r}
 # Create a numeric time variable so seasons can be plotted within each year
 dolphin_plot <- dolphin_clean |>
@@ -92,38 +97,6 @@ dolphin_plot <- dolphin_clean |>
         season == "Spring" ~ 0.50,
         season == "Summer" ~ 0.75))
 
-# Reconstruct the dolphin abundance figure with a cleaner and more accessible design
-ggplot(
-  dolphin_plot,
-  aes(
-    x = time_numeric,
-    y = abundance,
-    colour = sex,
-    group = sex)) +
-  geom_line(linewidth = 0.8) +
-  geom_point(
-    aes(shape = season),
-    size = 2.5) +
-  scale_colour_viridis_d() +
-  scale_x_continuous(
-    breaks = 2007:2013) +
-  labs(
-    title = "Seasonal abundance of Indo-Pacific bottlenose dolphins",
-    x = "Year",
-    y = "Estimated abundance",
-    colour = "Sex",
-    shape = "Season") +
-  theme_minimal() +
-  theme(
-    legend.position = "bottom")
-```
-
-## Reconstructed figure
-
-**Improvement approach:**\
-The figure was redesigned to make the temporal patterns easier to interpret by simplifying the x-axis, using contrasting colours for sex, and using different point shapes to retain seasonal information.
-
-```{r}
 # Create a cleaner publication-style plot with improved colours and legend layout
 ggplot(
   dolphin_plot,
